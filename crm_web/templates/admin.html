@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM77 — Кабинет администратора</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="site-nav">
+    <div class="brand">CRM77</div>
+    <nav>
+      <a href="/">Пользователь</a>
+      <a href="/admin">Админ</a>
+    </nav>
+    <a class="cta" href="/">Открыть CRM</a>
+  </header>
+
+  <main class="container">
+    <header class="hero">
+      <article class="hero-card dark">
+        <div class="chip-row">
+          <span class="chip warm">77 ADMIN</span>
+          <span class="chip">Управление доступом</span>
+        </div>
+        <h1>Кабинет администратора</h1>
+        <p>Создание пользователей, контроль доступа и подтверждение удаления.</p>
+      </article>
+      <article class="hero-card primary">
+        <div class="chip-row">
+          <span class="chip">77 CRM</span>
+          <span class="chip">Безопасность</span>
+        </div>
+        <h2>Пользователи системы</h2>
+        <p>Интерфейс похож на пользовательский кабинет, но с админ-функциями.</p>
+      </article>
+    </header>
+
+    <section class="grid">
+      <article class="card wide">
+        <h2>Аккаунты пользователей</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Имя</th>
+                <th>Роль</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.full_name }}</td>
+                <td>{{ user.role }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

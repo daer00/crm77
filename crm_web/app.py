@@ -1,5 +1,6 @@
 import csv
-import sqlite3
+import os
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -7,201 +8,219 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, create_engine, func, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "crm.db"
-CSV_PATH = BASE_DIR.parent / "CONTACT_20250916_5299b658_68c9c36edbc7d.csv"
+CSV_PATH = BASE_DIR.parent / "main_data.csv"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'crm.db'}")
 
-app = FastAPI(title="CRM Contacts & Deals")
+app = FastAPI(title="CRM77")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+engine = create_engine(DATABASE_URL, future=True)
 
 
-def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+class Base(DeclarativeBase):
+    pass
 
 
-def init_db() -> None:
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS companies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        )
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS contacts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            external_id INTEGER,
-            first_name TEXT,
-            last_name TEXT,
-            company_id INTEGER,
-            position TEXT,
-            contact_type TEXT,
-            work_phone TEXT,
-            mobile_phone TEXT,
-            email TEXT,
-            source TEXT,
-            FOREIGN KEY (company_id) REFERENCES companies(id)
-        )
-        """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS deals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            amount REAL DEFAULT 0,
-            status TEXT DEFAULT 'new',
-            company_id INTEGER NOT NULL,
-            notes TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (company_id) REFERENCES companies(id)
-        )
-        """
-    )
-    conn.commit()
-    conn.close()
+class Company(Base):
+    __tablename__ = "companies"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
 
 
-def get_or_create_company(cur: sqlite3.Cursor, name: str) -> Optional[int]:
-    cleaned = (name or "").strip()
-    if not cleaned:
+class Contact(Base):
+    __tablename__ = "contacts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    external_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    first_name: Mapped[str] = mapped_column(String(120), default="")
+    last_name: Mapped[str] = mapped_column(String(120), default="")
+    company_id: Mapped[Optional[int]] = mapped_column(ForeignKey("companies.id"), nullable=True)
+    position: Mapped[str] = mapped_column(String(255), default="")
+    contact_type: Mapped[str] = mapped_column(String(100), default="")
+    work_phone: Mapped[str] = mapped_column(String(50), default="")
+    mobile_phone: Mapped[str] = mapped_column(String(50), default="")
+    work_email: Mapped[str] = mapped_column(String(255), default="")
+    personal_email: Mapped[str] = mapped_column(String(255), default="")
+    source: Mapped[str] = mapped_column(String(255), default="")
+    interest_area: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    company: Mapped[Optional[Company]] = relationship()
+
+
+class Deal(Base):
+    __tablename__ = "deals"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(255))
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="new")
+    scope: Mapped[str] = mapped_column(String(255), default="")
+    amount: Mapped[float] = mapped_column(Float, default=0)
+    cost: Mapped[float] = mapped_column(Float, default=0)
+    margin: Mapped[float] = mapped_column(Float, default=0)
+    notes: Mapped[str] = mapped_column(String(500), default="")
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    company: Mapped[Company] = relationship()
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(20), default="user")
+    full_name: Mapped[str] = mapped_column(String(255), default="")
+
+
+def migrate_sqlite_schema() -> None:
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+    with engine.begin() as conn:
+        contact_cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(contacts)").fetchall()}
+        deal_cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(deals)").fetchall()}
+        contact_add = {
+            "work_email": "TEXT DEFAULT ''",
+            "personal_email": "TEXT DEFAULT ''",
+            "interest_area": "TEXT DEFAULT ''",
+            "created_at": "DATETIME",
+            "updated_at": "DATETIME",
+        }
+        deal_add = {
+            "started_at": "DATETIME",
+            "scope": "TEXT DEFAULT ''",
+            "cost": "FLOAT DEFAULT 0",
+            "margin": "FLOAT DEFAULT 0",
+            "finished_at": "DATETIME",
+        }
+        for col, ddl in contact_add.items():
+            if col not in contact_cols:
+                conn.exec_driver_sql(f"ALTER TABLE contacts ADD COLUMN {col} {ddl}")
+        for col, ddl in deal_add.items():
+            if col not in deal_cols:
+                conn.exec_driver_sql(f"ALTER TABLE deals ADD COLUMN {col} {ddl}")
+
+
+def get_or_create_company(session: Session, company_name: str) -> Optional[int]:
+    clean = (company_name or "").strip()
+    if not clean:
         return None
-    cur.execute("SELECT id FROM companies WHERE name = ?", (cleaned,))
-    row = cur.fetchone()
-    if row:
-        return row["id"]
-    cur.execute("INSERT INTO companies(name) VALUES (?)", (cleaned,))
-    return cur.lastrowid
+    company = session.scalar(select(Company).where(Company.name == clean))
+    if company:
+        return company.id
+    company = Company(name=clean)
+    session.add(company)
+    session.flush()
+    return company.id
 
 
 def seed_from_csv() -> None:
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) AS total FROM contacts")
-    if cur.fetchone()["total"] > 0:
-        conn.close()
-        return
     if not CSV_PATH.exists():
-        conn.close()
         return
-    with CSV_PATH.open("r", encoding="utf-8-sig", newline="") as f:
-        reader = csv.DictReader(f, delimiter=";")
-        for row in reader:
-            company_id = get_or_create_company(cur, row.get("Компания", ""))
-            cur.execute(
-                """
-                INSERT INTO contacts(
-                    external_id, first_name, last_name, company_id, position,
-                    contact_type, work_phone, mobile_phone, email, source
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    int(row["ID"]) if (row.get("ID") or "").isdigit() else None,
-                    row.get("Имя", "").strip(),
-                    row.get("Фамилия", "").strip(),
-                    company_id,
-                    row.get("Должность", "").strip(),
-                    row.get("Тип контакта", "").strip(),
-                    row.get("Рабочий телефон", "").strip(),
-                    row.get("Мобильный телефон", "").strip(),
-                    row.get("Рабочий e-mail", "").strip(),
-                    row.get("Источник", "").strip(),
-                ),
-            )
-    conn.commit()
-    conn.close()
+    with Session(engine) as session:
+        if session.scalar(select(func.count(Contact.id))) > 0:
+            return
+        with CSV_PATH.open("r", encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f, delimiter=";")
+            for row in reader:
+                company_id = get_or_create_company(session, row.get("Компания", ""))
+                session.add(
+                    Contact(
+                        external_id=int(row["ID"]) if (row.get("ID") or "").isdigit() else None,
+                        first_name=(row.get("Имя") or "").strip(),
+                        last_name=(row.get("Фамилия") or "").strip(),
+                        company_id=company_id,
+                        position=(row.get("Должность") or "").strip(),
+                        contact_type=(row.get("Тип контакта") or "").strip(),
+                        work_phone=(row.get("Рабочий телефон") or "").strip(),
+                        mobile_phone=(row.get("Мобильный телефон") or "").strip(),
+                        work_email=(row.get("Рабочий e-mail") or "").strip(),
+                        source=(row.get("Источник") or "").strip(),
+                    )
+                )
+        if not session.scalar(select(User).where(User.role == "admin")):
+            session.add(User(email="admin@crm77.local", role="admin", full_name="System Admin"))
+        session.commit()
 
 
 @app.on_event("startup")
 def startup_event() -> None:
-    init_db()
+    Base.metadata.create_all(engine)
+    migrate_sqlite_schema()
     seed_from_csv()
 
 
 @app.get("/")
 def dashboard(request: Request):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT c.id, c.name, COUNT(ct.id) AS contacts_count
-        FROM companies c
-        LEFT JOIN contacts ct ON ct.company_id = c.id
-        GROUP BY c.id
-        ORDER BY contacts_count DESC, c.name ASC
-        """
-    )
-    companies = cur.fetchall()
-    cur.execute(
-        """
-        SELECT ct.id, ct.first_name, ct.last_name, ct.position, ct.work_phone,
-               ct.mobile_phone, ct.email, cp.name AS company_name
-        FROM contacts ct
-        LEFT JOIN companies cp ON cp.id = ct.company_id
-        ORDER BY cp.name ASC, ct.last_name ASC, ct.first_name ASC
-        """
-    )
-    contacts = cur.fetchall()
-    cur.execute(
-        """
-        SELECT d.id, d.title, d.amount, d.status, d.created_at, c.name AS company_name
-        FROM deals d
-        JOIN companies c ON c.id = d.company_id
-        ORDER BY d.created_at DESC
-        LIMIT 50
-        """
-    )
-    deals = cur.fetchall()
-    conn.close()
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "companies": companies, "contacts": contacts, "deals": deals},
-    )
+    with Session(engine) as session:
+        companies = session.execute(
+            select(Company.id, Company.name, func.count(Contact.id).label("contacts_count"))
+            .outerjoin(Contact, Contact.company_id == Company.id)
+            .group_by(Company.id, Company.name)
+            .order_by(func.count(Contact.id).desc(), Company.name.asc())
+        ).all()
+        contacts = session.execute(
+            select(
+                Contact.id,
+                Contact.first_name,
+                Contact.last_name,
+                Contact.position,
+                Contact.work_phone,
+                Contact.mobile_phone,
+                Contact.work_email,
+                Company.name.label("company_name"),
+            )
+            .outerjoin(Company, Company.id == Contact.company_id)
+            .order_by(Company.name.asc(), Contact.last_name.asc(), Contact.first_name.asc())
+            .limit(120)
+        ).all()
+        deals = session.execute(
+            select(
+                Deal.id,
+                Deal.title,
+                Deal.amount,
+                Deal.status,
+                Deal.created_at,
+                Company.name.label("company_name"),
+            )
+            .join(Company, Company.id == Deal.company_id)
+            .order_by(Deal.created_at.desc())
+            .limit(50)
+        ).all()
+        return templates.TemplateResponse(
+            "index.html",
+            {"request": request, "companies": companies, "contacts": contacts, "deals": deals},
+        )
+
+
+@app.get("/admin")
+def admin_page(request: Request):
+    with Session(engine) as session:
+        users = session.execute(select(User).order_by(User.role.desc(), User.email.asc())).scalars().all()
+        return templates.TemplateResponse("admin.html", {"request": request, "users": users})
 
 
 @app.get("/companies/{company_id}")
 def company_page(request: Request, company_id: int):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name FROM companies WHERE id = ?", (company_id,))
-    company = cur.fetchone()
-    if not company:
-        conn.close()
-        return RedirectResponse(url="/", status_code=303)
-    cur.execute(
-        """
-        SELECT id, first_name, last_name, position, contact_type,
-               work_phone, mobile_phone, email, source
-        FROM contacts
-        WHERE company_id = ?
-        ORDER BY last_name ASC, first_name ASC
-        """,
-        (company_id,),
-    )
-    contacts = cur.fetchall()
-    cur.execute(
-        """
-        SELECT id, title, amount, status, notes, created_at
-        FROM deals
-        WHERE company_id = ?
-        ORDER BY created_at DESC
-        """,
-        (company_id,),
-    )
-    deals = cur.fetchall()
-    conn.close()
-    return templates.TemplateResponse(
-        "company.html",
-        {"request": request, "company": company, "contacts": contacts, "deals": deals},
-    )
+    with Session(engine) as session:
+        company = session.get(Company, company_id)
+        if not company:
+            return RedirectResponse(url="/", status_code=303)
+        contacts = session.execute(
+            select(Contact)
+            .where(Contact.company_id == company_id)
+            .order_by(Contact.last_name.asc(), Contact.first_name.asc())
+        ).scalars().all()
+        deals = session.execute(
+            select(Deal).where(Deal.company_id == company_id).order_by(Deal.created_at.desc())
+        ).scalars().all()
+        return templates.TemplateResponse(
+            "company.html",
+            {"request": request, "company": company, "contacts": contacts, "deals": deals},
+        )
 
 
 @app.post("/contacts")
@@ -213,23 +232,27 @@ def create_contact(
     contact_type: str = Form(""),
     work_phone: str = Form(""),
     mobile_phone: str = Form(""),
-    email: str = Form(""),
+    work_email: str = Form(""),
+    personal_email: str = Form(""),
     source: str = Form(""),
 ):
-    conn = get_conn()
-    cur = conn.cursor()
-    company_id = get_or_create_company(cur, company_name)
-    cur.execute(
-        """
-        INSERT INTO contacts(
-            first_name, last_name, company_id, position, contact_type,
-            work_phone, mobile_phone, email, source
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (first_name, last_name, company_id, position, contact_type, work_phone, mobile_phone, email, source),
-    )
-    conn.commit()
-    conn.close()
+    with Session(engine) as session:
+        company_id = get_or_create_company(session, company_name)
+        session.add(
+            Contact(
+                first_name=first_name.strip(),
+                last_name=last_name.strip(),
+                company_id=company_id,
+                position=position.strip(),
+                contact_type=contact_type.strip(),
+                work_phone=work_phone.strip(),
+                mobile_phone=mobile_phone.strip(),
+                work_email=work_email.strip(),
+                personal_email=personal_email.strip(),
+                source=source.strip(),
+            )
+        )
+        session.commit()
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -239,18 +262,22 @@ def create_deal(
     company_name: str = Form(...),
     amount: float = Form(0),
     status: str = Form("new"),
+    scope: str = Form(""),
     notes: str = Form(""),
 ):
-    conn = get_conn()
-    cur = conn.cursor()
-    company_id = get_or_create_company(cur, company_name)
-    if not company_id:
-        conn.close()
-        return RedirectResponse(url="/", status_code=303)
-    cur.execute(
-        "INSERT INTO deals(title, amount, status, company_id, notes) VALUES (?, ?, ?, ?, ?)",
-        (title, amount, status, company_id, notes),
-    )
-    conn.commit()
-    conn.close()
+    with Session(engine) as session:
+        company_id = get_or_create_company(session, company_name)
+        if not company_id:
+            return RedirectResponse(url="/", status_code=303)
+        session.add(
+            Deal(
+                title=title.strip(),
+                company_id=company_id,
+                amount=amount,
+                status=status.strip(),
+                scope=scope.strip(),
+                notes=notes.strip(),
+            )
+        )
+        session.commit()
     return RedirectResponse(url="/", status_code=303)

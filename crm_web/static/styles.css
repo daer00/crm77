@@ -1,9 +1,10 @@
 :root {
-  --bg: #f5f7fb;
+  --bg: #f3f5f9;
   --card: #ffffff;
   --line: #d9e0ea;
-  --text: #1d2a3a;
-  --primary: #165dff;
+  --text: #17202f;
+  --primary: #1a2dff;
+  --dark: #060b47;
 }
 * { box-sizing: border-box; }
 body {
@@ -12,9 +13,61 @@ body {
   color: var(--text);
   background: var(--bg);
 }
-.container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+.site-nav {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 160px 1fr 220px;
+  align-items: center;
+}
+.site-nav .brand {
+  padding: 16px 20px;
+  font-weight: 800;
+  color: #2541ff;
+  border-right: 1px solid var(--line);
+}
+.site-nav nav {
+  display: flex;
+  gap: 28px;
+  padding: 0 24px;
+}
+.site-nav nav a { text-decoration: none; color: #131d2c; font-weight: 500; }
+.site-nav .cta {
+  background: linear-gradient(90deg, #2c3dff 0%, #1325d9 100%);
+  color: #fff;
+  text-decoration: none;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+.container { max-width: 1280px; margin: 0 auto; padding: 16px; }
 .top h1 { margin: 0 0 8px; }
 .top p { margin: 0 0 16px; color: #4b5d75; }
+.hero {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+.hero-card {
+  border-radius: 24px;
+  min-height: 240px;
+  padding: 20px;
+  color: #fff;
+}
+.hero-card.primary { background: linear-gradient(180deg, #2f3fff 0%, #1a2dff 100%); }
+.hero-card.dark { background: linear-gradient(180deg, #050b52 0%, #030738 100%); }
+.hero-card h1, .hero-card h2 { margin: 8px 0; font-size: 48px; line-height: 1.04; max-width: 620px; }
+.hero-card p { margin: 0; color: #d6ddff; max-width: 620px; font-size: 20px; }
+.chip-row { display: flex; gap: 8px; }
+.chip {
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.chip.warm { background: #ff7f3e; border-color: #ff7f3e; color: #fff; }
 .grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 12px; }
 .card {
   background: var(--card);
@@ -71,6 +124,13 @@ th, td {
   font-size: 14px;
 }
 @media (max-width: 900px) {
+  .site-nav { grid-template-columns: 1fr; }
+  .site-nav .brand, .site-nav .cta { border-right: none; }
+  .site-nav nav { padding: 12px 16px; gap: 16px; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-card { min-height: 180px; border-radius: 16px; }
+  .hero-card h1, .hero-card h2 { font-size: 34px; }
+  .hero-card p { font-size: 16px; }
   .grid { grid-template-columns: 1fr; }
   .wide { grid-column: span 1; }
   .container { padding: 10px; }

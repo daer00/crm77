@@ -7,6 +7,14 @@
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
+  <header class="site-nav">
+    <div class="brand">CRM77</div>
+    <nav>
+      <a href="/">Главная</a>
+      <a href="/admin">Админ</a>
+    </nav>
+    <a class="cta" href="/">К компаниям</a>
+  </header>
   <main class="container">
     <header class="top">
       <a class="back-link" href="/">← Назад к списку компаний</a>
@@ -25,7 +33,7 @@
                 <th>Должность</th>
                 <th>Тип</th>
                 <th>Телефоны</th>
-                <th>Email</th>
+                <th>Рабочий e-mail</th>
                 <th>Источник</th>
               </tr>
             </thead>
@@ -36,7 +44,7 @@
                   <td>{{ contact.position }}</td>
                   <td>{{ contact.contact_type }}</td>
                   <td>{{ contact.work_phone }} {{ contact.mobile_phone }}</td>
-                  <td>{{ contact.email }}</td>
+                  <td>{{ contact.work_email }}</td>
                   <td>{{ contact.source }}</td>
                 </tr>
               {% endfor %}

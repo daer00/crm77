@@ -47,3 +47,24 @@
   - Авто-пуш зависит от локальной авторизации git/gh.
 - Что должен сделать следующий агент:
   - Начать Этап 3 (Авторизация) по чеклисту.
+
+## 2026-04-24 16:30 | Этап 3 (foundation) — PostgreSQL-ready + role UI
+- Что сделано:
+  - Backend переведен на SQLAlchemy (PostgreSQL-ready через `DATABASE_URL`).
+  - Основной импорт контактов переведен на `main_data.csv`.
+  - Добавлены таблицы `users`, базовый админ-поток и страница `/admin`.
+  - UI пользователя и админа приведен к единому стилю по референсу.
+- Что изменено (файлы):
+  - `crm_web/app.py`
+  - `crm_web/requirements.txt`
+  - `crm_web/templates/index.html`
+  - `crm_web/templates/company.html`
+  - `crm_web/templates/admin.html`
+  - `crm_web/static/styles.css`
+  - `docs/context/01_PRODUCT_TZ.md`
+  - `docs/context/06_ENV_WHAT_TO_ADD.md`
+- Ограничения/риски:
+  - Полный email-login (код на почту) еще не включен.
+  - Не добавлены миграции Alembic и полноценные permissions middleware.
+- Что должен сделать следующий агент:
+  - Реализовать авторизацию через Yandex SMTP + подтверждение удаления через admin flow.

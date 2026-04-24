@@ -3,14 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CRM: Контакты и сделки</title>
+  <title>CRM77 — Кабинет пользователя</title>
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
+  <header class="site-nav">
+    <div class="brand">CRM77</div>
+    <nav>
+      <a href="/">Главная</a>
+      <a href="/admin">Админ</a>
+    </nav>
+    <a class="cta" href="/admin">Связаться с админом</a>
+  </header>
   <main class="container">
-    <header class="top">
-      <h1>CRM: Контакты и сделки</h1>
-      <p>Контакты сгруппированы по компаниям. Добавляйте новые контакты и сделки в одном месте.</p>
+    <header class="hero">
+      <article class="hero-card primary">
+        <div class="chip-row">
+          <span class="chip warm">77 CRM</span>
+          <span class="chip">Контакты и компании</span>
+        </div>
+        <h1>Кабинет пользователя</h1>
+        <p>Работа с компаниями, контактами и сделками в едином интерфейсе.</p>
+      </article>
+      <article class="hero-card dark">
+        <div class="chip-row">
+          <span class="chip">77 PRO</span>
+          <span class="chip">Сделки</span>
+        </div>
+        <h2>Управление продажами</h2>
+        <p>Добавляйте новые сделки и отслеживайте статус по компаниям.</p>
+      </article>
     </header>
 
     <section class="grid">
@@ -36,7 +58,8 @@
           <input name="contact_type" placeholder="Тип контакта" />
           <input name="work_phone" placeholder="Рабочий телефон" />
           <input name="mobile_phone" placeholder="Мобильный телефон" />
-          <input name="email" placeholder="Email" type="email" />
+          <input name="work_email" placeholder="Рабочий e-mail" type="email" />
+          <input name="personal_email" placeholder="Личный e-mail" type="email" />
           <input name="source" placeholder="Источник" />
           <button type="submit">Сохранить контакт</button>
         </form>
@@ -48,6 +71,7 @@
           <input name="title" placeholder="Название сделки" required />
           <input name="company_name" placeholder="Компания" required />
           <input name="amount" placeholder="Сумма" type="number" step="0.01" />
+          <input name="scope" placeholder="Область сделки" />
           <select name="status">
             <option value="new">Новая</option>
             <option value="in_progress">В работе</option>
@@ -71,7 +95,7 @@
                 <th>Контакт</th>
                 <th>Должность</th>
                 <th>Телефоны</th>
-                <th>Email</th>
+                <th>Рабочий e-mail</th>
               </tr>
             </thead>
             <tbody>
@@ -81,7 +105,7 @@
                   <td>{{ contact.first_name }} {{ contact.last_name }}</td>
                   <td>{{ contact.position }}</td>
                   <td>{{ contact.work_phone }} {{ contact.mobile_phone }}</td>
-                  <td>{{ contact.email }}</td>
+                  <td>{{ contact.work_email }}</td>
                 </tr>
               {% endfor %}
             </tbody>

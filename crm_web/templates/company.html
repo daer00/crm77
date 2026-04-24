@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ company.name }} — CRM</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="top">
+      <a class="back-link" href="/">← Назад к списку компаний</a>
+      <h1>{{ company.name }}</h1>
+      <p>Контакты и сделки выбранной компании.</p>
+    </header>
+
+    <section class="grid">
+      <article class="card wide">
+        <h2>Контакты компании</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Контакт</th>
+                <th>Должность</th>
+                <th>Тип</th>
+                <th>Телефоны</th>
+                <th>Email</th>
+                <th>Источник</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for contact in contacts %}
+                <tr>
+                  <td>{{ contact.first_name }} {{ contact.last_name }}</td>
+                  <td>{{ contact.position }}</td>
+                  <td>{{ contact.contact_type }}</td>
+                  <td>{{ contact.work_phone }} {{ contact.mobile_phone }}</td>
+                  <td>{{ contact.email }}</td>
+                  <td>{{ contact.source }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card wide">
+        <h2>Сделки компании</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Сделка</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+                <th>Комментарий</th>
+                <th>Дата</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for deal in deals %}
+                <tr>
+                  <td>{{ deal.title }}</td>
+                  <td>{{ "%.2f"|format(deal.amount or 0) }}</td>
+                  <td>{{ deal.status }}</td>
+                  <td>{{ deal.notes }}</td>
+                  <td>{{ deal.created_at }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -201,6 +201,114 @@ def admin_page(request: Request):
     with Session(engine) as session:
         users = session.execute(select(User).order_by(User.role.desc(), User.email.asc())).scalars().all()
         return templates.TemplateResponse("admin.html", {"request": request, "users": users})
+
+
+@app.get("/contacts")
+def contacts_page(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    q: str = Query(default=""),
+):
+    page_size = 50
+    with Session(engine) as session:
+        stmt = (
+            select(
+                Contact.id,
+                Contact.first_name,
+                Contact.last_name,
+                Contact.position,
+                Contact.work_phone,
+                Contact.mobile_phone,
+                Contact.work_email,
+                Contact.source,
+                Contact.updated_at,
+                Company.name.label("company_name"),
+            )
+            .outerjoin(Company, Company.id == Contact.company_id)
+            .order_by(Contact.updated_at.desc(), Contact.id.desc())
+        )
+        count_stmt = select(func.count(Contact.id))
+        if q.strip():
+            term = f"%{q.strip()}%"
+            stmt = stmt.where(
+                Contact.first_name.ilike(term)
+                | Contact.last_name.ilike(term)
+                | Contact.work_email.ilike(term)
+                | Contact.mobile_phone.ilike(term)
+                | Contact.work_phone.ilike(term)
+                | Contact.source.ilike(term)
+            )
+            count_stmt = count_stmt.where(
+                Contact.first_name.ilike(term)
+                | Contact.last_name.ilike(term)
+                | Contact.work_email.ilike(term)
+                | Contact.mobile_phone.ilike(term)
+                | Contact.work_phone.ilike(term)
+                | Contact.source.ilike(term)
+            )
+        total = session.scalar(count_stmt) or 0
+        pages = max((total + page_size - 1) // page_size, 1)
+        safe_page = min(page, pages)
+        contacts = session.execute(stmt.offset((safe_page - 1) * page_size).limit(page_size)).all()
+        return templates.TemplateResponse(
+            "contacts.html",
+            {
+                "request": request,
+                "contacts": contacts,
+                "page": safe_page,
+                "pages": pages,
+                "q": q,
+                "total": total,
+            },
+        )
+
+
+@app.get("/deals")
+def deals_page(
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    q: str = Query(default=""),
+    status: str = Query(default=""),
+):
+    page_size = 50
+    with Session(engine) as session:
+        stmt = (
+            select(
+                Deal.id,
+                Deal.title,
+                Deal.amount,
+                Deal.status,
+                Deal.scope,
+                Deal.created_at,
+                Company.name.label("company_name"),
+            )
+            .join(Company, Company.id == Deal.company_id)
+            .order_by(Deal.created_at.desc(), Deal.id.desc())
+        )
+        count_stmt = select(func.count(Deal.id)).join(Company, Company.id == Deal.company_id)
+        if q.strip():
+            term = f"%{q.strip()}%"
+            stmt = stmt.where(Deal.title.ilike(term) | Company.name.ilike(term) | Deal.scope.ilike(term))
+            count_stmt = count_stmt.where(Deal.title.ilike(term) | Company.name.ilike(term) | Deal.scope.ilike(term))
+        if status.strip():
+            stmt = stmt.where(Deal.status == status.strip())
+            count_stmt = count_stmt.where(Deal.status == status.strip())
+        total = session.scalar(count_stmt) or 0
+        pages = max((total + page_size - 1) // page_size, 1)
+        safe_page = min(page, pages)
+        deals = session.execute(stmt.offset((safe_page - 1) * page_size).limit(page_size)).all()
+        return templates.TemplateResponse(
+            "deals.html",
+            {
+                "request": request,
+                "deals": deals,
+                "page": safe_page,
+                "pages": pages,
+                "q": q,
+                "status": status,
+                "total": total,
+            },
+        )
 
 
 @app.get("/companies/{company_id}")

@@ -11,30 +11,13 @@
     <div class="brand">CRM77</div>
     <nav>
       <a href="/">Главная</a>
+      <a href="/contacts">Контакты</a>
+      <a href="/deals">Сделки</a>
       <a href="/admin">Админ</a>
     </nav>
     <a class="cta" href="/admin">Связаться с админом</a>
   </header>
   <main class="container">
-    <header class="hero">
-      <article class="hero-card primary">
-        <div class="chip-row">
-          <span class="chip warm">77 CRM</span>
-          <span class="chip">Контакты и компании</span>
-        </div>
-        <h1>Кабинет пользователя</h1>
-        <p>Работа с компаниями, контактами и сделками в едином интерфейсе.</p>
-      </article>
-      <article class="hero-card dark">
-        <div class="chip-row">
-          <span class="chip">77 PRO</span>
-          <span class="chip">Сделки</span>
-        </div>
-        <h2>Управление продажами</h2>
-        <p>Добавляйте новые сделки и отслеживайте статус по компаниям.</p>
-      </article>
-    </header>
-
     <section class="grid">
       <article class="card">
         <h2>Компании</h2>
@@ -84,63 +67,6 @@
       </article>
     </section>
 
-    <section class="grid">
-      <article class="card wide">
-        <h2>Контакты</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Компания</th>
-                <th>Контакт</th>
-                <th>Должность</th>
-                <th>Телефоны</th>
-                <th>Рабочий e-mail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for contact in contacts %}
-                <tr>
-                  <td>{{ contact.company_name or "Без компании" }}</td>
-                  <td>{{ contact.first_name }} {{ contact.last_name }}</td>
-                  <td>{{ contact.position }}</td>
-                  <td>{{ contact.work_phone }} {{ contact.mobile_phone }}</td>
-                  <td>{{ contact.work_email }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </article>
-
-      <article class="card wide">
-        <h2>Сделки</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Компания</th>
-                <th>Сделка</th>
-                <th>Сумма</th>
-                <th>Статус</th>
-                <th>Дата</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for deal in deals %}
-                <tr>
-                  <td>{{ deal.company_name }}</td>
-                  <td>{{ deal.title }}</td>
-                  <td>{{ "%.2f"|format(deal.amount or 0) }}</td>
-                  <td>{{ deal.status }}</td>
-                  <td>{{ deal.created_at }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </article>
-    </section>
   </main>
 </body>
 </html>

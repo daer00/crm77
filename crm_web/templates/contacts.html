@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM77 — Контакты</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="site-nav">
+    <div class="brand">CRM77</div>
+    <nav>
+      <a href="/">Главная</a>
+      <a href="/contacts">Контакты</a>
+      <a href="/deals">Сделки</a>
+      <a href="/admin">Админ</a>
+    </nav>
+    <a class="cta" href="/contacts">Добавить контакт</a>
+  </header>
+
+  <main class="container">
+    <article class="card wide">
+      <h1>Контакты</h1>
+      <form method="get" action="/contacts" class="toolbar">
+        <input type="text" name="q" value="{{ q }}" placeholder="Поиск: имя, email, телефон, источник" />
+        <button type="submit">Найти</button>
+      </form>
+      <p class="muted">Всего контактов: {{ total }} | Страница {{ page }} из {{ pages }}</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Компания</th>
+              <th>Контакт</th>
+              <th>Должность</th>
+              <th>Телефоны</th>
+              <th>Рабочий e-mail</th>
+              <th>Источник</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for contact in contacts %}
+              <tr>
+                <td>{{ contact.company_name or "Без компании" }}</td>
+                <td>{{ contact.first_name }} {{ contact.last_name }}</td>
+                <td>{{ contact.position }}</td>
+                <td>{{ contact.work_phone }} {{ contact.mobile_phone }}</td>
+                <td>{{ contact.work_email }}</td>
+                <td>{{ contact.source }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        {% if page > 1 %}
+          <a href="/contacts?page={{ page - 1 }}&q={{ q }}">← Назад</a>
+        {% endif %}
+        {% if page < pages %}
+          <a href="/contacts?page={{ page + 1 }}&q={{ q }}">Вперед →</a>
+        {% endif %}
+      </div>
+    </article>
+  </main>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM77 — Сделки</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="site-nav">
+    <div class="brand">CRM77</div>
+    <nav>
+      <a href="/">Главная</a>
+      <a href="/contacts">Контакты</a>
+      <a href="/deals">Сделки</a>
+      <a href="/admin">Админ</a>
+    </nav>
+    <a class="cta" href="/deals">Добавить сделку</a>
+  </header>
+
+  <main class="container">
+    <article class="card wide">
+      <h1>Сделки</h1>
+      <form method="get" action="/deals" class="toolbar">
+        <input type="text" name="q" value="{{ q }}" placeholder="Поиск: сделка, компания, область" />
+        <select name="status">
+          <option value="">Все статусы</option>
+          <option value="new" {% if status == "new" %}selected{% endif %}>Новая</option>
+          <option value="in_progress" {% if status == "in_progress" %}selected{% endif %}>В работе</option>
+          <option value="won" {% if status == "won" %}selected{% endif %}>Успешно</option>
+          <option value="lost" {% if status == "lost" %}selected{% endif %}>Потеряна</option>
+        </select>
+        <button type="submit">Найти</button>
+      </form>
+      <p class="muted">Всего сделок: {{ total }} | Страница {{ page }} из {{ pages }}</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Компания</th>
+              <th>Сделка</th>
+              <th>Область</th>
+              <th>Сумма</th>
+              <th>Статус</th>
+              <th>Дата</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for deal in deals %}
+              <tr>
+                <td>{{ deal.company_name }}</td>
+                <td>{{ deal.title }}</td>
+                <td>{{ deal.scope }}</td>
+                <td>{{ "%.2f"|format(deal.amount or 0) }}</td>
+                <td>{{ deal.status }}</td>
+                <td>{{ deal.created_at }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        {% if page > 1 %}
+          <a href="/deals?page={{ page - 1 }}&q={{ q }}&status={{ status }}">← Назад</a>
+        {% endif %}
+        {% if page < pages %}
+          <a href="/deals?page={{ page + 1 }}&q={{ q }}&status={{ status }}">Вперед →</a>
+        {% endif %}
+      </div>
+    </article>
+  </main>
+</body>
+</html>

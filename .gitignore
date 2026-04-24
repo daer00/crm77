@@ -3,6 +3,7 @@
 *.env
 .venv/
 crm_web/.venv/
+_pydeps/
 __pycache__/
 *.pyc
 *.pyo
